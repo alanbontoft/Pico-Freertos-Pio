@@ -17,7 +17,7 @@ void led_task(void*)
     
     pMath = new MathClass(0);
 
-    // first 8 flashes slow, second 8 fast, repeat
+    // first 5 flashes slow, second 5 fast, repeat
 
     while (true)
     {
