@@ -1,0 +1,45 @@
+;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
+
+.program pioledcounter
+
+; Repeatedly get one word of data from the TX FIFO, and stores into X scratch for when FIFO is
+; empty. Write the 3 least significant bits to the SET pin group.
+; Creates a squarewave switching between 1MHz and 500kHz
+
+;    set x, 0            ; initialise X scratch to 0 
+.wrap_target
+    pull block          ; Pull from FIFO
+    out pins, 5         ; shift 5 bits out to pins
+.wrap
+
+% c-sdk {
+static inline void pioledcounter_program_init(PIO pio, uint sm, uint offset, uint pin, float div) {
+
+    const uint numPins = 5;
+
+    pio_sm_config c = pioledcounter_program_get_default_config(offset);
+
+    // Map the state machine's OUT pin group to 3 consecutive pins, starting at the `pin`
+    // parameter to this function.
+    sm_config_set_out_pins(&c, pin, numPins);
+
+    // Set these pins' GPIO function (connect PIO to the pad)
+    for (uint i=0; i < numPins; i++)
+        pio_gpio_init(pio, pin + i);
+    
+    // Set the pin direction to output at the PIO
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, numPins, true);
+
+    // set clock divider according to div parameter
+    sm_config_set_clkdiv(&c, div);
+
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+    // Set the state machine running
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
